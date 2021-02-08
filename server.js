@@ -50,89 +50,44 @@ best to send some kind of HTTP error response. More on that later.)
 */
 http
   .createServer((request, response) => {
-    const { headers, method, url } = request;
-    let body = [];
-    request
-      .on("error", (err) => {
-        console.error(err);
-      })
-      .on("data", (chunk) => {
-        body.push(chunk);
-      })
-      .on("end", () => {
-        body = Buffer.concat(body).toString();
-        /*
-        At this point, we have the headers, method, url and body, and can now
-        do whatever we need to in order to respond to this request.
-        */
+    const { method, url } = request;
 
-        // console.log(headers["user-agent"]);
-        /*
-        Suppose you:
-            - uncomment the previous instruction
-            - comment out the remainder of this function's definition
-        If we run [the resulting] example,
-        we'll be able to _receive_ requests, but not _respond_ to them.
-        In fact, if you [enter localhost:3000] in a web browser
-        or if you issue `curl localhost:3000` in another terminal session,
-        your request would time out, as nothing is being sent back to the client.
-        */
+    request.on("error", (err) => {
+      console.error(err);
+      response.statusCode = 400;
+      response.end();
+    });
 
-        /*
-        [The] `response` ... is an instance of `ServerResponse`,
-        which is a `WritableStream`.
-        It contains many useful methods for sending data back to the client.
-        */
+    /* TODO: find out whether the previous block renders the next one unnecessary */
+    request.on("error", (err) => {
+      console.error(err);
+    });
 
-        // response.statusCode = 200;
-        // response.setHeader("Content-Type", "text/html");
-        // response.setHeader("X-Powered-By", "broccoli");
-        // /*
-        // Note: the preceding block of instructions could be replaced with this next one:
-        // */
-        // // response.writeHead(200, {
-        // //   "Content-Type": "text/html",
-        // //   "X-Powered-By": "broccoli",
-        // // });
+    if (method === "POST" && url === "/echo") {
+      let body = [];
 
-        // response.write("<html>");
-        // response.write("<body>");
-        // response.write("</body>");
-        // response.write("<h1>Hello, World!</h1>");
-        // response.write("</html>");
-        // response.end();
-        // /*
-        // Note: the preceding block of instructions could be replaced with this next one:
-        // */
-        // // response.end("<html><body><h1>Hello, World!</h1></body></html>");
+      request
+        .on("data", (chunk) => {
+          body.push(chunk);
+        })
+        .on("end", () => {
+          body = Buffer.concat(body).toString();
 
-        response.statusCode = 200;
-        response.setHeader("Content-Type", "application/json");
-        /* Note: the 2 lines above could be replaced with this next one: */
-        // response.writeHead(200, { "Content-Type": "application/json" });
+          response.end(body);
+        });
+      /*
+      [Note:
+      
+      since] the `request` object is a `ReadableStream`
+      and the `response` object is a `WritableStream`,
+      [that] means we can use `pipe` to direct data from one to the other.]
 
-        const responseBody = { headers, method, url, body };
-
-        response.write(JSON.stringify(responseBody));
-        response.end();
-        /* Note: the 2 lines above could be replaced with this next one: */
-        // response.end(JSON.stringify(responseBody));
-
-        /*
-        [
-        If you run the resulting example, you can try:
-
-        - entering localhost:3000 in your web browser
-        - entering localhost:3000/resource in your web browser
-        
-        - issuing in another terminal session
-            `curl -v localhost:3000`
-        - issuing in another terminal session
-            `curl -v localhost:3000/resource`
-        - issuing in another terminal session
-            `curl -v -d '{"id": 17, "username": "jd-user"}' localhost:3000/resource`
-        ]
-        */
-      });
+      [In other words, the preceding instruction could be replaced with this next one:]
+      */
+      // request.pipe(response);
+    } else {
+      response.statusCode = 404;
+      response.end();
+    }
   })
   .listen(3000); /* Activates this server, listening on port 3000. */
